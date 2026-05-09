@@ -765,7 +765,6 @@ const BOWS = {
 
 const VS          = 343;        // Schallgeschwindigkeit m/s
 const G           = 9.81;       // Erdbeschleunigung m/s²
-const GR_TO_KG    = 0.00006479891;
 const FPS_TO_MS   = 0.3048;
 
 // ══════════════════════════════════════════════
@@ -829,6 +828,9 @@ const TRANSLATIONS = {
     tl_sound:            'Schall am Wild',
     tl_react:            'Wild reagiert',
     tl_arrow:            'Pfeilauftreff',
+    alert_name_required: 'Bitte einen Namen eingeben.',
+    alert_meas_required: 'Bitte mindestens einen Messpunkt eingeben.',
+    confirm_delete:      'Bogen löschen?',
     langBtn:             'EN',
   },
   en: {
@@ -887,6 +889,9 @@ const TRANSLATIONS = {
     tl_sound:            'Sound at game',
     tl_react:            'Game reacts',
     tl_arrow:            'Arrow impact',
+    alert_name_required: 'Please enter a name.',
+    alert_meas_required: 'Please enter at least one measurement.',
+    confirm_delete:      'Delete bow?',
     langBtn:             'DE',
   }
 };
@@ -1205,7 +1210,7 @@ function closeSaveBowForm() {
 
 function saveUserBow() {
   const name = document.getElementById('newBowName').value.trim();
-  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  if (!name) { alert(t('alert_name_required')); return; }
   const lbs  = document.getElementById('newBowLbs').value.trim();
   const draw = document.getElementById('newBowDraw').value.trim();
 
@@ -1220,7 +1225,7 @@ function saveUserBow() {
     }
   }
   if (measurements.length === 0) {
-    alert('Bitte mindestens einen Messpunkt eingeben.');
+    alert(t('alert_meas_required'));
     return;
   }
 
@@ -1236,7 +1241,7 @@ function saveUserBow() {
 }
 
 function deleteUserBow(key) {
-  if (!confirm('Bogen löschen?')) return;
+  if (!confirm(t('confirm_delete'))) return;
   localStorage.removeItem(key);
   renderUserBowList();
   renderUserBowCmpList();
@@ -1442,7 +1447,11 @@ function renderTimeline() {
   // Background track
   ctx.fillStyle = cssVar('--panel-2');
   ctx.beginPath();
-  ctx.roundRect(padL, H / 2 - 5, gw, 10, 4);
+  if (ctx.roundRect) {
+    ctx.roundRect(padL, H / 2 - 5, gw, 10, 4);
+  } else {
+    ctx.rect(padL, H / 2 - 5, gw, 10);
+  }
   ctx.fill();
 
   // Arrow travel (blue)
