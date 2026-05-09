@@ -763,12 +763,16 @@ const BOWS = {
   phase4_70: { name:'Mathews Phase4 33 70#', a: 4830.5, b: -0.466, draw: 70 }
 };
 
-const VS          = 343;        // Schallgeschwindigkeit m/s
-const G           = 9.81;       // Erdbeschleunigung m/s²
+const VS          = 343;        // v_s = 343 m/s (Schallgeschwindigkeit)
+const G           = 9.81;       // g = 9.81 m/s² (Erdbeschleunigung)
 const FPS_TO_MS   = 0.3048;
-// Default power-law exponent for single-point fits: empirical mean from compound bow data sets.
-// Using this value avoids extreme extrapolation when only one measurement is available.
+// Default power-law exponent for single-point fits: empirical mean from compound bow literature
+// (draw weights 30–70 lbs, arrow weights 300–900 gr). Using this value avoids extreme
+// extrapolation when only one chronograph measurement is available.
 const DEFAULT_POWER_EXPONENT = -0.476;
+// Maximum device pixel ratio to use for canvas scaling. Values above 2 (e.g., 3× or 4× on
+// some phones) produce no perceptible quality gain while multiplying canvas memory quadratically.
+const MAX_DPR = 2;
 
 // ══════════════════════════════════════════════
 //  TRANSLATIONS
@@ -1096,13 +1100,13 @@ function calcStringjump(distM, v0ms, tDelay, tReaction) {
   const tSoundTravel = distM / VS;
   const tTotal = tDelay + tSoundTravel + tReaction;
   const sArrow = v0ms * tTotal;
-  const sj = distM - sArrow;  // positive = arrow still in flight when game reacts
+  const stringJumpM = distM - sArrow;  // positive = arrow still in flight when game reacts
   const sArrowAtSound = v0ms * (tDelay + tSoundTravel);
 
   let freeFallMm = 0;
   let tRemaining = 0;
-  if (sj > 0) {
-    tRemaining = sj / v0ms;
+  if (stringJumpM > 0) {
+    tRemaining = stringJumpM / v0ms;
     freeFallMm = 0.5 * G * tRemaining * tRemaining * 1000;
   }
 
@@ -1111,10 +1115,10 @@ function calcStringjump(distM, v0ms, tDelay, tReaction) {
     tTotal,
     sArrowAtReaction: sArrow,
     sArrowAtSoundArrival: sArrowAtSound,
-    sj,
+    sj: stringJumpM,
     tRemaining,
     freeFallMm,
-    safe: sj <= 0
+    safe: stringJumpM <= 0
   };
 }
 
@@ -1429,8 +1433,8 @@ function renderTimeline() {
   const v0ms  = v0fps * FPS_TO_MS;
   const res   = calcStringjump(distM, v0ms, tDelay, tReact);
 
-  // Cap DPR at 2 to avoid excessive canvas memory usage on high-DPI (3x, 4x) displays.
-  const dpr  = Math.min(window.devicePixelRatio || 1, 2);
+  // Cap DPR at MAX_DPR to avoid excessive canvas memory usage on high-DPI (3x, 4x) displays.
+  const dpr  = Math.min(window.devicePixelRatio || 1, MAX_DPR);
   const cssW = canvas.parentElement.clientWidth - 2;
   const cssH = 90;
   canvas.width  = cssW * dpr;
@@ -1565,8 +1569,8 @@ function renderCustomFitPlot() {
     addBow(getUserBow(cb.dataset.storageKey));
   });
 
-  // Cap DPR at 2 to avoid excessive canvas memory usage on high-DPI (3x, 4x) displays.
-  const dpr  = Math.min(window.devicePixelRatio || 1, 2);
+  // Cap DPR at MAX_DPR to avoid excessive canvas memory usage on high-DPI (3x, 4x) displays.
+  const dpr  = Math.min(window.devicePixelRatio || 1, MAX_DPR);
   const cssW = canvas.parentElement.clientWidth - 2;
   const cssH = 240;
   canvas.width  = cssW * dpr;
