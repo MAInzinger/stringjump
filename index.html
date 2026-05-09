@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StringJump – Bogenjagd Reaktionsdistanz</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; scroll-behavior: smooth; }
+
+    /* ── CSS Variables / Theme ── */
+    :root {
+      --bg:          #0f1117;
+      --panel:       #181c27;
+      --panel-2:     #1e2333;
+      --border:      #2a2f42;
+      --text:        #e2e8f0;
+      --muted:       #64748b;
+      --accent:      #3b82f6;
+      --accent-h:    #2563eb;
+      --danger:      #ef4444;
+      --ok:          #22c55e;
+      --warn:        #f59e0b;
+      --grid-line:   rgba(100,116,139,.18);
+      --canvas-bg:   #181c27;
+      --fs-mini:     0.72rem;
+      --fs-sm:       0.82rem;
+      --fs-base:     0.93rem;
+      --radius:      10px;
+      --shadow:      0 4px 24px rgba(0,0,0,.45);
+    }
+    [data-theme="light"] {
+      --bg:          #f1f5f9;
+      --panel:       #ffffff;
+      --panel-2:     #f8fafc;
+      --border:      #cbd5e1;
+      --text:        #1e293b;
+      --muted:       #64748b;
+      --accent:      #2563eb;
+      --accent-h:    #1d4ed8;
+      --danger:      #dc2626;
+      --ok:          #16a34a;
+      --warn:        #d97706;
+      --grid-line:   rgba(100,116,139,.2);
+      --canvas-bg:   #ffffff;
+      --shadow:      0 4px 24px rgba(0,0,0,.12);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', 'Consolas', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      font-size: 1.7rem;
+      line-height: 1;
+    }
+    .logo-text h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .logo-text p {
+      font-size: var(--fs-mini);
+      color: var(--muted);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .theme-btn {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background .15s;
+    }
+    .theme-btn:hover { background: var(--border); }
+    .lang-btn {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: var(--fs-sm);
+      font-family: inherit;
+      transition: background .15s;
+    }
+    .lang-btn:hover { background: var(--border); }
+
+    /* ── Main Layout ── */
+    main {
+      flex: 1;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 760px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .panel + .panel { margin-top: 0; }
+    .panel-title {
+      font-size: var(--fs-sm);
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Form Controls ── */
+    label {
+      display: block;
+      font-size: var(--fs-mini);
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: var(--fs-sm);
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus { border-color: var(--accent); }
+    select option { background: var(--panel); }
+
+    .form-row { margin-bottom: 10px; }
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-size: var(--fs-sm);
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn:hover { background: var(--accent-h); }
+    .btn-sm { padding: 5px 10px; font-size: var(--fs-mini); }
+    .btn-ghost {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { background: var(--border); }
+    .btn-danger { background: #7f1d1d; color: #fca5a5; }
+    .btn-danger:hover { background: #991b1b; }
+
+    /* ── Checkbox row ── */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: var(--fs-sm);
+      margin-bottom: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .check-row input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 12px 0;
+    }
+
+    /* ── Chrono table ── */
+    .chrono-grid {
+      display: grid;
+      grid-template-columns: 24px 1fr 1fr;
+      gap: 4px 8px;
+      align-items: center;
+      font-size: var(--fs-mini);
+    }
+    .chrono-grid-header { color: var(--muted); font-size: var(--fs-mini); }
+    .chrono-grid input {
+      padding: 5px 8px;
+      font-size: var(--fs-mini);
+    }
+
+    /* ── Fit info box ── */
+    #chronFitInfo {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: var(--fs-mini);
+      color: var(--muted);
+      margin-top: 8px;
+      min-height: 32px;
+      line-height: 1.5;
+    }
+
+    /* ── R² hint ── */
+    #fitR2Hint {
+      font-size: var(--fs-mini);
+      color: var(--muted);
+      margin-top: 4px;
+      display: none;
+    }
+
+    /* ── User bow measurements table ── */
+    #userBowMeasurements {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: var(--fs-mini);
+      margin-top: 8px;
+      display: none;
+    }
+
+    /* ── Canvas wrapper ── */
+    #customFitPlotGroup { margin-top: 12px; }
+    #customFitCanvas {
+      display: block;
+      border-radius: 6px;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Results panel ── */
+    .result-hero {
+      text-align: center;
+      padding: 20px 16px 16px;
+    }
+    .result-hero-label {
+      font-size: var(--fs-mini);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 4px;
+    }
+    .result-hero-value {
+      font-size: 3.2rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .result-hero-unit {
+      font-size: var(--fs-sm);
+      color: var(--muted);
+    }
+    .result-hero-sublabel {
+      font-size: var(--fs-mini);
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .result-badge {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: var(--fs-sm);
+      font-weight: 700;
+      margin: 8px auto 0;
+    }
+    .badge-safe { background: rgba(34,197,94,.15); color: var(--ok); border: 1px solid var(--ok); }
+    .badge-hit  { background: rgba(239,68,68,.15);  color: var(--danger); border: 1px solid var(--danger); }
+
+    /* ── Result rows ── */
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--fs-sm);
+      margin-top: 8px;
+    }
+    .result-table td {
+      padding: 5px 4px;
+      vertical-align: top;
+    }
+    .result-table td:first-child {
+      color: var(--muted);
+      white-space: nowrap;
+      padding-right: 10px;
+      width: 55%;
+    }
+    .result-table td:last-child {
+      font-weight: 600;
+      text-align: right;
+    }
+    .result-table tr { border-bottom: 1px solid var(--border); }
+    .result-table tr:last-child { border-bottom: none; }
+
+    /* ── Sound meter ── */
+    .sound-meter-wrap {
+      margin-top: 10px;
+    }
+    .sound-bar-bg {
+      height: 8px;
+      background: var(--panel-2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .sound-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width .4s;
+      background: linear-gradient(90deg, var(--ok), var(--warn), var(--danger));
+    }
+    .sound-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--fs-mini);
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Timeline visualization ── */
+    .timeline-wrap {
+      margin-top: 12px;
+      position: relative;
+    }
+    .timeline-label {
+      font-size: var(--fs-mini);
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    #timelineCanvas {
+      display: block;
+      width: 100%;
+      border-radius: 6px;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border);
+    }
+
+    /* ── User bow manager ── */
+    .user-bow-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .user-bow-card-name { font-size: var(--fs-sm); font-weight: 600; }
+    .user-bow-card-sub { font-size: var(--fs-mini); color: var(--muted); margin-top: 2px; }
+    .user-bow-card-actions { display: flex; gap: 6px; }
+
+    /* ── Add-bow form ── */
+    #addBowForm {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* ── Tab strip ── */
+    .tab-strip {
+      display: flex;
+      gap: 2px;
+      background: var(--panel-2);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: var(--fs-sm);
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--panel);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* ── Info tooltip ── */
+    .info-icon {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--muted);
+      font-size: 9px;
+      text-align: center;
+      line-height: 14px;
+      cursor: help;
+      vertical-align: middle;
+      margin-left: 3px;
+    }
+
+    /* ── Scrollable right column ── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Slider ── */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+      margin: 4px 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slider-row input[type="range"] { flex: 1; }
+    .slider-val {
+      min-width: 52px;
+      text-align: right;
+      font-size: var(--fs-sm);
+      font-weight: 600;
+    }
+
+    /* ── Compare bows section ── */
+    #cmpBowsSection { margin-top: 8px; }
+    #userBowCmpList { margin-top: 6px; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 12px;
+      font-size: var(--fs-mini);
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Responsive tweaks ── */
+    @media (max-width: 480px) {
+      .result-hero-value { font-size: 2.4rem; }
+      .form-row-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">🏹</span>
+    <div class="logo-text">
+      <h1>StringJump</h1>
+      <p id="headerSub">Bogenjagd Reaktionsdistanz-Rechner</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="lang-btn" id="langBtn" onclick="toggleLang()">EN</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
+  </div>
+</header>
+
+<main>
+  <!-- ── LEFT COLUMN: Bow Setup ── -->
+  <div class="left-col">
+
+    <!-- Bow Setup Panel -->
+    <div class="panel">
+      <div class="panel-title" id="titleBowSetup">Bogen-Setup</div>
+
+      <!-- Tab strip -->
+      <div class="tab-strip">
+        <button class="tab-btn active" id="tabBuiltin" onclick="showTab('builtin')">Built-in</button>
+        <button class="tab-btn" id="tabCustom"  onclick="showTab('custom')">Chronograph</button>
+        <button class="tab-btn" id="tabUser"    onclick="showTab('user')">Meine Bögen</button>
+      </div>
+
+      <!-- Built-in bows -->
+      <div id="builtinTab">
+        <div class="form-row">
+          <label id="lblBowSelect">Bogen</label>
+          <select id="bowSelect" onchange="onBowChange()">
+            <option value="pse40">PSE Evoke 31 40#</option>
+            <option value="v3_60" selected>Mathews V3 31 60#</option>
+            <option value="phase4_70">Mathews Phase4 33 70#</option>
+          </select>
+        </div>
+
+        <!-- Compare bows -->
+        <div id="cmpBowsSection">
+          <label id="lblCmpBows">Vergleichsbögen (Diagramm)</label>
+          <div style="margin-top:5px;">
+            <label class="check-row"><input type="checkbox" id="cmpBow_pse40" onchange="renderAll()"> PSE Evoke 31 40#</label>
+            <label class="check-row"><input type="checkbox" id="cmpBow_v3_60" onchange="renderAll()"> Mathews V3 31 60#</label>
+            <label class="check-row"><input type="checkbox" id="cmpBow_phase4_70" onchange="renderAll()"> Mathews Phase4 33 70#</label>
+          </div>
+          <div id="userBowCmpList"></div>
+        </div>
+      </div>
+
+      <!-- Custom chronograph -->
+      <div id="customTab" style="display:none;">
+        <p style="font-size:var(--fs-mini);color:var(--muted);margin-bottom:10px;" id="chronDesc">
+          Gib bis zu 5 Chronograph-Messpunkte ein (Pfeilgewicht in grain, v₀ in fps).
+        </p>
+        <div class="chrono-grid">
+          <span class="chrono-grid-header">#</span>
+          <span class="chrono-grid-header" id="lblChronW">Gewicht [gr]</span>
+          <span class="chrono-grid-header" id="lblChronS">v₀ [fps]</span>
+          <span style="color:var(--muted);font-size:var(--fs-mini);">1</span>
+          <input type="text" id="chronW1" placeholder="z.B. 400" oninput="onChronInput()">
+          <input type="text" id="chronS1" placeholder="z.B. 280" oninput="onChronInput()">
+          <span style="color:var(--muted);font-size:var(--fs-mini);">2</span>
+          <input type="text" id="chronW2" placeholder="" oninput="onChronInput()">
+          <input type="text" id="chronS2" placeholder="" oninput="onChronInput()">
+          <span style="color:var(--muted);font-size:var(--fs-mini);">3</span>
+          <input type="text" id="chronW3" placeholder="" oninput="onChronInput()">
+          <input type="text" id="chronS3" placeholder="" oninput="onChronInput()">
+          <span style="color:var(--muted);font-size:var(--fs-mini);">4</span>
+          <input type="text" id="chronW4" placeholder="" oninput="onChronInput()">
+          <input type="text" id="chronS4" placeholder="" oninput="onChronInput()">
+          <span style="color:var(--muted);font-size:var(--fs-mini);">5</span>
+          <input type="text" id="chronW5" placeholder="" oninput="onChronInput()">
+          <input type="text" id="chronS5" placeholder="" oninput="onChronInput()">
+        </div>
+        <div id="chronFitInfo"></div>
+        <div id="fitR2Hint" style="display:none;"></div>
+        <hr class="divider">
+        <button class="btn btn-sm" id="btnSaveBow" onclick="openSaveBowForm()">💾 <span id="lblSaveBow">Bogen speichern</span></button>
+        <div id="addBowForm">
+          <div class="form-row">
+            <label id="lblBowName">Bogenname</label>
+            <input type="text" id="newBowName" placeholder="z.B. Mein Recurve">
+          </div>
+          <div class="form-row-2">
+            <div>
+              <label id="lblBowLbs">Zuggewicht [lbs]</label>
+              <input type="text" id="newBowLbs" placeholder="z.B. 55">
+            </div>
+            <div>
+              <label id="lblBowDraw">Auszugslänge [Zoll]</label>
+              <input type="text" id="newBowDraw" placeholder="z.B. 28">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <button class="btn btn-sm" onclick="saveUserBow()">✔ <span id="lblSaveConfirm">Speichern</span></button>
+            <button class="btn btn-sm btn-ghost" onclick="closeSaveBowForm()"><span id="lblCancel">Abbrechen</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- User bows -->
+      <div id="userTab" style="display:none;">
+        <div id="userBowList"><p style="font-size:var(--fs-mini);color:var(--muted);" id="noUserBows">Noch keine Bögen gespeichert.</p></div>
+      </div>
+
+      <!-- User bow measurements (shown below setup) -->
+      <div id="userBowMeasurements"></div>
+    </div>
+
+    <!-- Arrow + Distance Panel -->
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-title" id="titleShotSetup">Schuss-Setup</div>
+
+      <div class="form-row">
+        <label id="lblArrowWeight">Pfeilgewicht [grain]</label>
+        <input type="text" id="arrowWeightManual" value="450" oninput="renderAll()">
+      </div>
+
+      <div class="form-row">
+        <label id="lblDist">Distanz zum Wild [m]</label>
+        <div class="slider-row">
+          <input type="range" id="distSlider" min="5" max="60" step="1" value="20" oninput="onDistSlider()">
+          <span class="slider-val" id="distSliderVal">20 m</span>
+        </div>
+        <input type="text" id="distInput" value="20" oninput="onDistInput()" style="margin-top:4px;">
+      </div>
+
+      <hr class="divider">
+
+      <div class="form-row">
+        <label id="lblDelay">Bogen-Verzögerung t_delay [ms]
+          <span class="info-icon" title="Zeit von Auslösung bis Pfeil verlässt die Sehne (typisch 10–20 ms)">i</span>
+        </label>
+        <div class="slider-row">
+          <input type="range" id="delaySlider" min="0" max="50" step="1" value="15" oninput="onDelaySlider()">
+          <span class="slider-val" id="delaySliderVal">15 ms</span>
+        </div>
+        <input type="text" id="delayInput" value="15" oninput="onDelayInput()" style="margin-top:4px;">
+      </div>
+
+      <div class="form-row">
+        <label id="lblReaction">Wild-Reaktionszeit t_react [ms]
+          <span class="info-icon" title="Reaktionszeit des Wildes nach Schallwahrnehmung (typisch 150–250 ms)">i</span>
+        </label>
+        <div class="slider-row">
+          <input type="range" id="reactSlider" min="50" max="400" step="10" value="200" oninput="onReactSlider()">
+          <span class="slider-val" id="reactSliderVal">200 ms</span>
+        </div>
+        <input type="text" id="reactInput" value="200" oninput="onReactInput()" style="margin-top:4px;">
+      </div>
+    </div>
+
+  </div><!-- /left-col -->
+
+  <!-- ── RIGHT COLUMN: Results + Plot ── -->
+  <div class="right-col">
+
+    <!-- Stringjump Result -->
+    <div class="panel">
+      <div class="panel-title" id="titleResult">Ergebnis – StringJump</div>
+
+      <div class="result-hero" id="resultHero">
+        <div class="result-hero-label" id="heroLabel">Stringjump</div>
+        <div class="result-hero-value" id="heroValue">–</div>
+        <div class="result-hero-unit" id="heroUnit">Meter</div>
+        <div class="result-hero-sublabel" id="heroSublabel"></div>
+        <div id="heroBadge"></div>
+      </div>
+
+      <table class="result-table" id="resultTable">
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Sound Level -->
+    <div class="panel">
+      <div class="panel-title" id="titleSound">Schallpegel am Wild</div>
+      <div id="soundContent">
+        <table class="result-table">
+          <tbody id="soundBody"></tbody>
+        </table>
+        <div class="sound-meter-wrap" id="soundMeterWrap" style="display:none;">
+          <div style="font-size:var(--fs-mini);color:var(--muted);margin-bottom:3px;" id="lblSoundMeter">Schallpegel-Indikator</div>
+          <div class="sound-bar-bg">
+            <div class="sound-bar-fill" id="soundBarFill" style="width:50%;"></div>
+          </div>
+          <div class="sound-labels">
+            <span>40 dB</span>
+            <span id="soundBarCenter">60 dB</span>
+            <span>80 dB</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline visualization -->
+    <div class="panel">
+      <div class="panel-title" id="titleTimeline">Zeitstrahl</div>
+      <div class="timeline-wrap">
+        <canvas id="timelineCanvas" height="90"></canvas>
+      </div>
+    </div>
+
+    <!-- Fit Plot -->
+    <div class="panel">
+      <div class="panel-title" id="titleFitPlot">v₀-Kurve: Pfeilgewicht → Geschwindigkeit</div>
+      <div id="customFitPlotGroup">
+        <canvas id="customFitCanvas"></canvas>
+      </div>
+    </div>
+
+  </div><!-- /right-col -->
+</main>
+
+<footer>
+  StringJump &nbsp;·&nbsp; Bogenjagd Reaktionsdistanz-Rechner &nbsp;·&nbsp;
+  Schallgeschwindigkeit 343 m/s &nbsp;·&nbsp; g = 9.81 m/s²
+</footer>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+const STORAGE_PREFIX = 'sj_bow_';
+
+const BOWS = {
+  pse40:     { name:'PSE Evoke 31 40#',     a: 3708,   b: -0.478, draw: 40 },
+  v3_60:     { name:'Mathews V3 31 60#',     a: 4404.3, b: -0.485, draw: 60 },
+  phase4_70: { name:'Mathews Phase4 33 70#', a: 4830.5, b: -0.466, draw: 70 }
+};
+
+const VS          = 343;        // Schallgeschwindigkeit m/s
+const G           = 9.81;       // Erdbeschleunigung m/s²
+const GR_TO_KG    = 0.00006479891;
+const FPS_TO_MS   = 0.3048;
+
+// ══════════════════════════════════════════════
+//  TRANSLATIONS
+// ══════════════════════════════════════════════
+const TRANSLATIONS = {
+  de: {
+    headerSub:           'Bogenjagd Reaktionsdistanz-Rechner',
+    titleBowSetup:       'Bogen-Setup',
+    titleShotSetup:      'Schuss-Setup',
+    titleResult:         'Ergebnis – StringJump',
+    titleSound:          'Schallpegel am Wild',
+    titleTimeline:       'Zeitstrahl',
+    titleFitPlot:        'v₀-Kurve: Pfeilgewicht → Geschwindigkeit',
+    lblBowSelect:        'Bogen',
+    lblCmpBows:          'Vergleichsbögen (Diagramm)',
+    lblArrowWeight:      'Pfeilgewicht [grain]',
+    lblDist:             'Distanz zum Wild [m]',
+    lblDelay:            'Bogen-Verzögerung t_delay [ms]',
+    lblReaction:         'Wild-Reaktionszeit t_react [ms]',
+    heroLabel:           'StringJump',
+    heroUnit:            'Meter',
+    lblSoundMeter:       'Schallpegel-Indikator',
+    lblChronW:           'Gewicht [gr]',
+    lblChronS:           'v₀ [fps]',
+    chronDesc:           'Gib bis zu 5 Chronograph-Messpunkte ein (Pfeilgewicht in grain, v₀ in fps).',
+    lblSaveBow:          'Bogen speichern',
+    lblBowName:          'Bogenname',
+    lblBowLbs:           'Zuggewicht [lbs]',
+    lblBowDraw:          'Auszugslänge [Zoll]',
+    lblSaveConfirm:      'Speichern',
+    lblCancel:           'Abbrechen',
+    noUserBows:          'Noch keine Bögen gespeichert.',
+    fit_no_meas:         'Keine Messpunkte eingetragen.',
+    fit_1_meas:          '1 Messpunkt · a = {a}, b = {b} (angenommener Exponent)',
+    fit_2_meas:          '2 Messpunkte · a = {a}, b = {b}',
+    fit_n_meas:          '{n} Messpunkte · a = {a}, b = {b} · R² = {r2} ({quality})',
+    fit_quality_great:   'sehr gut',
+    fit_quality_good:    'gut',
+    fit_quality_fair:    'ausreichend',
+    fit_spread_low:      '⚠ Spread nur {x} gr – mehr Streuung empfohlen.',
+    fit_spread_ok:       '⚡ Spread {x} gr – ok.',
+    fit_plot_empty:      'Messpunkte eingeben um Kurve zu sehen.',
+    fit_plot_need_more:  '≥ 3 Punkte für Regression.',
+    setup_chrono_weight: 'Gewicht',
+    setup_chrono_v0:     'v₀',
+    // Result table rows
+    res_v0fps:           'Pfeilgeschwindigkeit v₀',
+    res_v0ms:            'v₀ [m/s]',
+    res_t_sound:         'Schall-Ankunftszeit',
+    res_t_total:         'Gesamtzeit bis Wild reagiert',
+    res_arrow_at_react:  'Pfeilposition bei Reaktion',
+    res_sj:              'StringJump (Puffer)',
+    res_fall:            'Absinkung (bei pos. SJ)',
+    res_safe:            'Treffer vor Reaktion?',
+    res_sound_bow:       'Schallpegel am Bogen',
+    res_sound_dist:      'Schallpegel am Wild',
+    badge_safe:          '✔ Pfeil trifft vor Reaktion',
+    badge_hit:           '✘ Wild kann reagieren',
+    tl_shot:             'Schuss',
+    tl_sound:            'Schall am Wild',
+    tl_react:            'Wild reagiert',
+    tl_arrow:            'Pfeilauftreff',
+    langBtn:             'EN',
+  },
+  en: {
+    headerSub:           'Bowhunting Reaction Distance Calculator',
+    titleBowSetup:       'Bow Setup',
+    titleShotSetup:      'Shot Setup',
+    titleResult:         'Result – StringJump',
+    titleSound:          'Sound Level at Game',
+    titleTimeline:       'Timeline',
+    titleFitPlot:        'v₀ Curve: Arrow Weight → Velocity',
+    lblBowSelect:        'Bow',
+    lblCmpBows:          'Compare bows (chart)',
+    lblArrowWeight:      'Arrow weight [grain]',
+    lblDist:             'Distance to game [m]',
+    lblDelay:            'Bow delay t_delay [ms]',
+    lblReaction:         'Game reaction time t_react [ms]',
+    heroLabel:           'StringJump',
+    heroUnit:            'Meters',
+    lblSoundMeter:       'Sound level indicator',
+    lblChronW:           'Weight [gr]',
+    lblChronS:           'v₀ [fps]',
+    chronDesc:           'Enter up to 5 chronograph measurements (arrow weight in grain, v₀ in fps).',
+    lblSaveBow:          'Save bow',
+    lblBowName:          'Bow name',
+    lblBowLbs:           'Draw weight [lbs]',
+    lblBowDraw:          'Draw length [inch]',
+    lblSaveConfirm:      'Save',
+    lblCancel:           'Cancel',
+    noUserBows:          'No bows saved yet.',
+    fit_no_meas:         'No measurements entered.',
+    fit_1_meas:          '1 measurement · a = {a}, b = {b} (assumed exponent)',
+    fit_2_meas:          '2 measurements · a = {a}, b = {b}',
+    fit_n_meas:          '{n} measurements · a = {a}, b = {b} · R² = {r2} ({quality})',
+    fit_quality_great:   'excellent',
+    fit_quality_good:    'good',
+    fit_quality_fair:    'fair',
+    fit_spread_low:      '⚠ Spread only {x} gr – more spread recommended.',
+    fit_spread_ok:       '⚡ Spread {x} gr – ok.',
+    fit_plot_empty:      'Enter measurements to see the curve.',
+    fit_plot_need_more:  '≥ 3 points needed for regression.',
+    setup_chrono_weight: 'Weight',
+    setup_chrono_v0:     'v₀',
+    res_v0fps:           'Arrow velocity v₀',
+    res_v0ms:            'v₀ [m/s]',
+    res_t_sound:         'Sound travel time',
+    res_t_total:         'Total time until game reacts',
+    res_arrow_at_react:  'Arrow position at reaction',
+    res_sj:              'StringJump (buffer)',
+    res_fall:            'Arrow drop (if pos. SJ)',
+    res_safe:            'Arrow hits before reaction?',
+    res_sound_bow:       'Sound level at bow',
+    res_sound_dist:      'Sound level at game',
+    badge_safe:          '✔ Arrow hits before reaction',
+    badge_hit:           '✘ Game can react',
+    tl_shot:             'Shot',
+    tl_sound:            'Sound at game',
+    tl_react:            'Game reacts',
+    tl_arrow:            'Arrow impact',
+    langBtn:             'DE',
+  }
+};
+
+let lang = localStorage.getItem('sj_lang') || 'de';
+
+function t(key) {
+  return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || key;
+}
+
+function applyTranslations() {
+  // Update all elements with id matching a key
+  const keys = Object.keys(TRANSLATIONS[lang]);
+  keys.forEach(key => {
+    const el = document.getElementById(key);
+    if (el) el.textContent = t(key);
+  });
+  document.getElementById('langBtn').textContent = t('langBtn');
+  document.documentElement.lang = lang;
+}
+
+function toggleLang() {
+  lang = lang === 'de' ? 'en' : 'de';
+  localStorage.setItem('sj_lang', lang);
+  applyTranslations();
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+//  THEME
+// ══════════════════════════════════════════════
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next === 'dark' ? '' : 'light');
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('sj_theme', next);
+  renderAll();
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('sj_theme') || 'dark';
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  PHYSICS ENGINE
+// ══════════════════════════════════════════════
+
+function parseLocale(v) {
+  return Number(String(v).replace(',', '.'));
+}
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function computePowerFit(measurements) {
+  if (!measurements || measurements.length === 0) return null;
+  if (measurements.length === 1) {
+    const b = -0.476;
+    const a = measurements[0].s / Math.pow(measurements[0].w, b);
+    return { a: a, b: b, r2: null };
+  }
+  if (measurements.length === 2) {
+    const b = Math.log(measurements[0].s / measurements[1].s) /
+              Math.log(measurements[0].w / measurements[1].w);
+    const a = measurements[0].s / Math.pow(measurements[0].w, b);
+    return { a: a, b: b, r2: null };
+  }
+  const n = measurements.length;
+  let sumX = 0, sumY = 0, sumXX = 0, sumXY = 0;
+  measurements.forEach(p => {
+    const x = Math.log(p.w), y = Math.log(p.s);
+    sumX += x; sumY += y; sumXX += x * x; sumXY += x * y;
+  });
+  const b = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const logA = (sumY - b * sumX) / n;
+  const a = Math.exp(logA);
+  const meanY = sumY / n;
+  let ssTot = 0, ssRes = 0;
+  measurements.forEach(p => {
+    const y = Math.log(p.s);
+    const yPred = logA + b * Math.log(p.w);
+    ssTot += (y - meanY) ** 2;
+    ssRes += (y - yPred) ** 2;
+  });
+  const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
+  return { a: a, b: b, r2: r2 };
+}
+
+function getUserBow(storageKey) {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data.measurements || data.measurements.length === 0) return null;
+    const fit = computePowerFit(data.measurements);
+    if (!fit) return null;
+    const lbsLabel = data.lbs ? ' ' + data.lbs + '#' : '';
+    const drawLabel = data.draw ? ' / ' + data.draw : '';
+    return {
+      name: data.name + lbsLabel + drawLabel,
+      a: fit.a,
+      b: fit.b,
+      draw: parseLocale(data.lbs) || 60,
+      r2: fit.r2,
+      isUser: true,
+      storageKey: storageKey
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function getV0fps(bowKey, mp) {
+  if (bowKey && bowKey.indexOf(STORAGE_PREFIX) === 0) {
+    const userBow = getUserBow(bowKey);
+    if (userBow) return userBow.a * Math.pow(mp, userBow.b);
+    return 250;
+  }
+  if (bowKey === 'custom') {
+    const pts = [];
+    for (let i = 1; i <= 5; i++) {
+      const wEl = document.getElementById('chronW' + i);
+      const sEl = document.getElementById('chronS' + i);
+      if (wEl && sEl) {
+        const w = parseLocale(wEl.value), s = parseLocale(sEl.value);
+        if (w > 0 && s > 0) pts.push({ w, s });
+      }
+    }
+    const fitInfo = document.getElementById('chronFitInfo');
+    let a, b;
+    if (pts.length === 0) {
+      if (fitInfo) {
+        fitInfo.innerHTML = t('fit_no_meas');
+      }
+      return 250;
+    }
+    if (pts.length === 1) {
+      b = -0.476;
+      a = pts[0].s / Math.pow(pts[0].w, b);
+      if (fitInfo) fitInfo.innerHTML = t('fit_1_meas').replace('{a}', a.toFixed(0)).replace('{b}', b.toFixed(3));
+    } else if (pts.length === 2) {
+      b = Math.log(pts[0].s / pts[1].s) / Math.log(pts[0].w / pts[1].w);
+      a = pts[0].s / Math.pow(pts[0].w, b);
+      const spread = Math.abs(pts[0].w - pts[1].w);
+      let spreadNote = spread < 200 ? '<br>' + t('fit_spread_low').replace('{x}', spread.toFixed(0))
+                     : spread < 300 ? '<br>' + t('fit_spread_ok').replace('{x}', spread.toFixed(0))
+                     : '';
+      if (fitInfo) fitInfo.innerHTML = t('fit_2_meas').replace('{a}', a.toFixed(0)).replace('{b}', b.toFixed(3)) + spreadNote;
+    } else {
+      const n = pts.length;
+      let sumX = 0, sumY = 0, sumXX = 0, sumXY = 0;
+      pts.forEach(p => {
+        const x = Math.log(p.w), y = Math.log(p.s);
+        sumX += x; sumY += y; sumXX += x * x; sumXY += x * y;
+      });
+      b = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+      const logA = (sumY - b * sumX) / n;
+      a = Math.exp(logA);
+      const meanY = sumY / n;
+      let ssTot = 0, ssRes = 0;
+      pts.forEach(p => {
+        const y = Math.log(p.s);
+        const yPred = logA + b * Math.log(p.w);
+        ssTot += (y - meanY) ** 2;
+        ssRes += (y - yPred) ** 2;
+      });
+      const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
+      const qualityText = r2 > 0.98 ? t('fit_quality_great')
+                        : r2 > 0.95 ? t('fit_quality_good')
+                        : t('fit_quality_fair');
+      const weights = pts.map(p => p.w);
+      const spread = Math.max(...weights) - Math.min(...weights);
+      let spreadNote = spread < 200 ? '<br>' + t('fit_spread_low').replace('{x}', spread.toFixed(0))
+                     : spread < 300 ? '<br>' + t('fit_spread_ok').replace('{x}', spread.toFixed(0))
+                     : '';
+      if (fitInfo) fitInfo.innerHTML = t('fit_n_meas')
+        .replace('{n}', n).replace('{a}', a.toFixed(0)).replace('{b}', b.toFixed(3))
+        .replace('{r2}', r2.toFixed(4)).replace('{quality}', qualityText) + spreadNote;
+    }
+    return a * Math.pow(mp, b);
+  }
+  const bow = BOWS[bowKey];
+  return bow.a * Math.pow(mp, bow.b);
+}
+
+function calcStringjump(distM, v0ms, tDelay, tReaction) {
+  const tSoundTravel = distM / VS;
+  const tTotal = tDelay + tSoundTravel + tReaction;
+  const sArrow = v0ms * tTotal;
+  const sj = distM - sArrow;  // positive = arrow still in flight when game reacts
+  const sArrowAtSound = v0ms * (tDelay + tSoundTravel);
+
+  let freeFallMm = 0;
+  let tRemaining = 0;
+  if (sj > 0) {
+    tRemaining = sj / v0ms;
+    freeFallMm = 0.5 * G * tRemaining * tRemaining * 1000;
+  }
+
+  return {
+    tSoundArrival: tSoundTravel,
+    tTotal,
+    sArrowAtReaction: sArrow,
+    sArrowAtSoundArrival: sArrowAtSound,
+    sj,
+    tRemaining,
+    freeFallMm,
+    safe: sj <= 0
+  };
+}
+
+function calcSoundLevelAtBow(arrowGrain) {
+  const base = 80;
+  const reduction = (arrowGrain - 400) * (6 / 300);
+  return Math.max(base - reduction, 68);
+}
+
+function calcSoundLevelAtDist(lBow, distM) {
+  if (distM <= 0.5) return lBow;
+  return lBow - 20 * Math.log10(distM / 1);
+}
+
+// ══════════════════════════════════════════════
+//  UI STATE
+// ══════════════════════════════════════════════
+let activeTab = 'builtin'; // 'builtin' | 'custom' | 'user'
+
+function showTab(tab) {
+  activeTab = tab;
+  ['builtin','custom','user'].forEach(id => {
+    document.getElementById(id + 'Tab').style.display = id === tab ? '' : 'none';
+    document.getElementById('tab' + id.charAt(0).toUpperCase() + id.slice(1)).classList.toggle('active', id === tab);
+  });
+  renderAll();
+}
+
+function currentBowKey() {
+  if (activeTab === 'builtin') return document.getElementById('bowSelect').value;
+  if (activeTab === 'custom') return 'custom';
+  // user tab: return selected user bow if any
+  const selected = document.querySelector('input[name="userBowRadio"]:checked');
+  return selected ? selected.value : 'v3_60';
+}
+
+function onBowChange() { renderAll(); }
+function onChronInput() { renderAll(); }
+
+// ── Slider/input sync helpers ──
+function onDistSlider() {
+  const v = document.getElementById('distSlider').value;
+  document.getElementById('distInput').value = v;
+  document.getElementById('distSliderVal').textContent = v + ' m';
+  renderAll();
+}
+function onDistInput() {
+  const v = parseLocale(document.getElementById('distInput').value);
+  if (!isNaN(v) && v >= 1) {
+    document.getElementById('distSlider').value = Math.min(v, 60);
+    document.getElementById('distSliderVal').textContent = v.toFixed(0) + ' m';
+  }
+  renderAll();
+}
+function onDelaySlider() {
+  const v = document.getElementById('delaySlider').value;
+  document.getElementById('delayInput').value = v;
+  document.getElementById('delaySliderVal').textContent = v + ' ms';
+  renderAll();
+}
+function onDelayInput() {
+  const v = parseLocale(document.getElementById('delayInput').value);
+  if (!isNaN(v) && v >= 0) {
+    document.getElementById('delaySlider').value = Math.min(v, 50);
+    document.getElementById('delaySliderVal').textContent = v.toFixed(0) + ' ms';
+  }
+  renderAll();
+}
+function onReactSlider() {
+  const v = document.getElementById('reactSlider').value;
+  document.getElementById('reactInput').value = v;
+  document.getElementById('reactSliderVal').textContent = v + ' ms';
+  renderAll();
+}
+function onReactInput() {
+  const v = parseLocale(document.getElementById('reactInput').value);
+  if (!isNaN(v) && v >= 0) {
+    document.getElementById('reactSlider').value = Math.min(v, 400);
+    document.getElementById('reactSliderVal').textContent = v.toFixed(0) + ' ms';
+  }
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+//  USER BOW MANAGEMENT
+// ══════════════════════════════════════════════
+function getAllUserBowKeys() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.indexOf(STORAGE_PREFIX) === 0) keys.push(k);
+  }
+  return keys;
+}
+
+function openSaveBowForm() {
+  document.getElementById('addBowForm').style.display = '';
+}
+function closeSaveBowForm() {
+  document.getElementById('addBowForm').style.display = 'none';
+}
+
+function saveUserBow() {
+  const name = document.getElementById('newBowName').value.trim();
+  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  const lbs  = document.getElementById('newBowLbs').value.trim();
+  const draw = document.getElementById('newBowDraw').value.trim();
+
+  // Collect measurements from the chrono fields
+  const measurements = [];
+  for (let i = 1; i <= 5; i++) {
+    const wEl = document.getElementById('chronW' + i);
+    const sEl = document.getElementById('chronS' + i);
+    if (wEl && sEl) {
+      const w = parseLocale(wEl.value), s = parseLocale(sEl.value);
+      if (w > 0 && s > 0) measurements.push({ w, s });
+    }
+  }
+  if (measurements.length === 0) {
+    alert('Bitte mindestens einen Messpunkt eingeben.');
+    return;
+  }
+
+  const key = STORAGE_PREFIX + Date.now();
+  localStorage.setItem(key, JSON.stringify({ name, lbs, draw, measurements }));
+  closeSaveBowForm();
+  document.getElementById('newBowName').value = '';
+  document.getElementById('newBowLbs').value = '';
+  document.getElementById('newBowDraw').value = '';
+  renderUserBowList();
+  renderUserBowCmpList();
+  showTab('user');
+}
+
+function deleteUserBow(key) {
+  if (!confirm('Bogen löschen?')) return;
+  localStorage.removeItem(key);
+  renderUserBowList();
+  renderUserBowCmpList();
+  renderAll();
+}
+
+function renderUserBowList() {
+  const list = document.getElementById('userBowList');
+  const keys = getAllUserBowKeys();
+  if (keys.length === 0) {
+    list.innerHTML = '<p style="font-size:var(--fs-mini);color:var(--muted);" id="noUserBows">' + t('noUserBows') + '</p>';
+    return;
+  }
+  let html = '';
+  keys.forEach(key => {
+    let data;
+    try { data = JSON.parse(localStorage.getItem(key)); } catch (e) { return; }
+    const fit = computePowerFit(data.measurements || []);
+    const fitStr = fit ? 'a=' + fit.a.toFixed(0) + ' b=' + fit.b.toFixed(3) : '';
+    html += `
+      <div class="user-bow-card">
+        <div>
+          <div class="user-bow-card-name">${escapeHtml(data.name)}${data.lbs ? ' · ' + escapeHtml(String(data.lbs)) + '#' : ''}</div>
+          <div class="user-bow-card-sub">${data.measurements ? data.measurements.length : 0} Messpunkte · ${fitStr}</div>
+        </div>
+        <div class="user-bow-card-actions">
+          <label class="check-row" style="margin:0;" title="Als aktiven Bogen wählen">
+            <input type="radio" name="userBowRadio" value="${escapeHtml(key)}" onchange="renderAll()">
+            <span style="font-size:var(--fs-mini);">✓</span>
+          </label>
+          <button class="btn btn-sm btn-danger" onclick="deleteUserBow('${escapeHtml(key)}')">🗑</button>
+        </div>
+      </div>`;
+  });
+  list.innerHTML = html;
+}
+
+function renderUserBowCmpList() {
+  const container = document.getElementById('userBowCmpList');
+  if (!container) return;
+  const keys = getAllUserBowKeys();
+  if (keys.length === 0) { container.innerHTML = ''; return; }
+  let html = '<hr class="divider"><label style="font-size:var(--fs-mini);color:var(--muted);">Eigene Bögen vergleichen</label>';
+  keys.forEach(key => {
+    let data;
+    try { data = JSON.parse(localStorage.getItem(key)); } catch (e) { return; }
+    html += `<label class="check-row">
+      <input type="checkbox" class="cmpBow-user" data-storage-key="${escapeHtml(key)}" onchange="renderAll()">
+      ${escapeHtml(data.name)}${data.lbs ? ' ' + escapeHtml(String(data.lbs)) + '#' : ''}
+    </label>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderUserBowMeasurements(bowKey) {
+  const box = document.getElementById('userBowMeasurements');
+  if (!box) return;
+  if (!bowKey || bowKey.indexOf(STORAGE_PREFIX) !== 0) {
+    box.style.display = 'none';
+    return;
+  }
+  let data = null;
+  try {
+    const raw = localStorage.getItem(bowKey);
+    if (raw) data = JSON.parse(raw);
+  } catch (e) {}
+  if (!data || !data.measurements || data.measurements.length === 0) {
+    box.style.display = 'none';
+    return;
+  }
+  let html = '<div style="font-weight:700;margin-bottom:4px;">' + escapeHtml(data.name);
+  if (data.lbs) html += ' · ' + escapeHtml(String(data.lbs)) + '#';
+  if (data.draw) html += ' / ' + escapeHtml(String(data.draw)) + '"';
+  html += '</div>';
+  html += '<div style="display:grid;grid-template-columns:auto auto auto;gap:2px 12px;font-size:var(--fs-mini);">';
+  html += '<span style="color:var(--muted);">#</span>';
+  html += '<span style="color:var(--muted);">' + t('setup_chrono_weight') + '</span>';
+  html += '<span style="color:var(--muted);">' + t('setup_chrono_v0') + '</span>';
+  data.measurements.forEach((m, i) => {
+    html += '<span style="color:var(--muted);">' + (i + 1) + '</span>';
+    html += '<span>' + m.w + '</span>';
+    html += '<span>' + m.s + '</span>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+  box.style.display = 'block';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// ══════════════════════════════════════════════
+//  RESULTS RENDERING
+// ══════════════════════════════════════════════
+function renderResults() {
+  const bowKey  = currentBowKey();
+  const mp      = parseLocale(document.getElementById('arrowWeightManual').value) || 450;
+  const distM   = parseLocale(document.getElementById('distInput').value) || 20;
+  const tDelay  = (parseLocale(document.getElementById('delayInput').value) || 15) / 1000;
+  const tReact  = (parseLocale(document.getElementById('reactInput').value) || 200) / 1000;
+
+  const v0fps = getV0fps(bowKey, mp);
+  const v0ms  = v0fps * FPS_TO_MS;
+
+  const res = calcStringjump(distM, v0ms, tDelay, tReact);
+
+  // Hero value
+  document.getElementById('heroLabel').textContent = t('heroLabel');
+  document.getElementById('heroUnit').textContent  = t('heroUnit');
+
+  const sjM = res.sj;
+  const heroEl = document.getElementById('heroValue');
+  if (res.safe) {
+    heroEl.textContent = (Math.abs(sjM)).toFixed(2);
+    heroEl.style.color = 'var(--ok)';
+    document.getElementById('heroSublabel').textContent = '';
+  } else {
+    heroEl.textContent = sjM.toFixed(2);
+    heroEl.style.color = 'var(--danger)';
+    document.getElementById('heroSublabel').textContent = '';
+  }
+
+  // Badge
+  const badge = document.getElementById('heroBadge');
+  badge.innerHTML = res.safe
+    ? `<span class="result-badge badge-safe">${t('badge_safe')}</span>`
+    : `<span class="result-badge badge-hit">${t('badge_hit')}</span>`;
+
+  // Table
+  const tbody = document.getElementById('resultBody');
+  tbody.innerHTML = `
+    <tr><td>${t('res_v0fps')}</td><td>${v0fps.toFixed(1)} fps</td></tr>
+    <tr><td>${t('res_v0ms')}</td><td>${v0ms.toFixed(1)} m/s</td></tr>
+    <tr><td>${t('res_t_sound')}</td><td>${(res.tSoundArrival * 1000).toFixed(1)} ms</td></tr>
+    <tr><td>${t('res_t_total')}</td><td>${(res.tTotal * 1000).toFixed(1)} ms</td></tr>
+    <tr><td>${t('res_arrow_at_react')}</td><td>${res.sArrowAtReaction.toFixed(2)} m</td></tr>
+    <tr><td>${t('res_sj')}</td><td style="color:${res.safe ? 'var(--ok)' : 'var(--danger)'};">${sjM.toFixed(3)} m</td></tr>
+    <tr><td>${t('res_fall')}</td><td>${res.freeFallMm > 0 ? res.freeFallMm.toFixed(1) + ' mm' : '–'}</td></tr>
+  `;
+
+  // Sound
+  const lBow  = calcSoundLevelAtBow(mp);
+  const lDist = calcSoundLevelAtDist(lBow, distM);
+  const soundBody = document.getElementById('soundBody');
+  soundBody.innerHTML = `
+    <tr><td>${t('res_sound_bow')}</td><td>${lBow.toFixed(1)} dB</td></tr>
+    <tr><td>${t('res_sound_dist')}</td><td>${lDist.toFixed(1)} dB</td></tr>
+  `;
+
+  // Sound bar (range 40–80 dB)
+  const soundMeterWrap = document.getElementById('soundMeterWrap');
+  soundMeterWrap.style.display = '';
+  document.getElementById('lblSoundMeter').textContent = t('lblSoundMeter');
+  const pct = Math.max(0, Math.min(100, (lDist - 40) / 40 * 100));
+  document.getElementById('soundBarFill').style.width = pct + '%';
+  document.getElementById('soundBarCenter').textContent = '60 dB';
+}
+
+// ══════════════════════════════════════════════
+//  TIMELINE CANVAS
+// ══════════════════════════════════════════════
+function renderTimeline() {
+  const canvas = document.getElementById('timelineCanvas');
+  if (!canvas) return;
+
+  const bowKey = currentBowKey();
+  const mp     = parseLocale(document.getElementById('arrowWeightManual').value) || 450;
+  const distM  = parseLocale(document.getElementById('distInput').value) || 20;
+  const tDelay = (parseLocale(document.getElementById('delayInput').value) || 15) / 1000;
+  const tReact = (parseLocale(document.getElementById('reactInput').value) || 200) / 1000;
+
+  const v0fps = getV0fps(bowKey, mp);
+  const v0ms  = v0fps * FPS_TO_MS;
+  const res   = calcStringjump(distM, v0ms, tDelay, tReact);
+
+  const dpr  = Math.min(window.devicePixelRatio || 1, 2);
+  const cssW = canvas.parentElement.clientWidth - 2;
+  const cssH = 90;
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = cssW, H = cssH;
+  const padL = 10, padR = 10, padT = 24, padB = 18;
+  const gw = W - padL - padR;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Time events (in ms)
+  const t0     = 0;
+  const tSound = (tDelay + res.tSoundArrival) * 1000;
+  const tReactAbs = (tDelay + res.tSoundArrival + tReact) * 1000;
+  const tArrow = res.safe ? tReactAbs : (distM / v0ms + tDelay) * 1000;
+  const tEnd   = Math.max(tReactAbs, tArrow) * 1.12;
+
+  const toX = t => padL + (t / tEnd) * gw;
+
+  // Background track
+  ctx.fillStyle = cssVar('--panel-2');
+  ctx.beginPath();
+  ctx.roundRect(padL, H / 2 - 5, gw, 10, 4);
+  ctx.fill();
+
+  // Arrow travel (blue)
+  const xArrow = toX(Math.min(tArrow, tEnd));
+  ctx.fillStyle = 'rgba(59,130,246,0.35)';
+  ctx.fillRect(padL, H / 2 - 5, xArrow - padL, 10);
+
+  // Sound travel (yellow)
+  const xSound = toX(tSound);
+  ctx.fillStyle = 'rgba(245,158,11,0.5)';
+  ctx.fillRect(padL, H / 2 - 5, xSound - padL, 10);
+
+  // Markers
+  const events = [
+    { x: padL,         label: t('tl_shot'),   color: cssVar('--text'),    y: padT - 6 },
+    { x: xSound,       label: t('tl_sound'),  color: 'var(--warn)',        y: H - padB + 4 },
+    { x: toX(tReactAbs), label: t('tl_react'), color: 'var(--danger)',    y: padT - 6 },
+    { x: toX(Math.min(tArrow, tEnd)), label: t('tl_arrow'), color: 'var(--ok)', y: H - padB + 4 },
+  ];
+
+  ctx.font = 'bold 9px "JetBrains Mono", monospace';
+  events.forEach(ev => {
+    // tick
+    ctx.strokeStyle = ev.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ev.x, H / 2 - 8);
+    ctx.lineTo(ev.x, H / 2 + 8);
+    ctx.stroke();
+    // label
+    ctx.fillStyle = ev.color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = ev.y < H / 2 ? 'bottom' : 'top';
+    ctx.fillText(ev.label, Math.max(padL + 18, Math.min(ev.x, W - padR - 18)), ev.y);
+  });
+
+  // Time axis label
+  ctx.fillStyle = cssVar('--muted');
+  ctx.font = '9px "JetBrains Mono", monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(tEnd.toFixed(0) + ' ms', W - padR, H / 2);
+}
+
+// ══════════════════════════════════════════════
+//  FIT PLOT
+// ══════════════════════════════════════════════
+function renderCustomFitPlot() {
+  const group  = document.getElementById('customFitPlotGroup');
+  const canvas = document.getElementById('customFitCanvas');
+  if (!group || !canvas) return;
+
+  const bowKey = currentBowKey();
+
+  const pts = [];
+  if (bowKey === 'custom') {
+    for (let i = 1; i <= 5; i++) {
+      const wEl = document.getElementById('chronW' + i);
+      const sEl = document.getElementById('chronS' + i);
+      if (wEl && sEl) {
+        const w = parseLocale(wEl.value), s = parseLocale(sEl.value);
+        if (w > 0 && s > 0) pts.push({ w, s });
+      }
+    }
+  } else if (bowKey && bowKey.indexOf(STORAGE_PREFIX) === 0) {
+    const userCb = document.querySelector('input.cmpBow-user[data-storage-key="' + bowKey + '"]');
+    if (userCb && userCb.checked) {
+      try {
+        const raw = localStorage.getItem(bowKey);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data && data.measurements) {
+            data.measurements.forEach(m => { if (m.w > 0 && m.s > 0) pts.push({ w: m.w, s: m.s }); });
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Active comparison bows
+  const activeBows = [];
+  const seen = new Set();
+  const addBow = (bow) => {
+    if (!bow) return;
+    const id = bow.name + '|' + bow.a + '|' + bow.b;
+    if (seen.has(id)) return;
+    seen.add(id);
+    activeBows.push(bow);
+  };
+
+  if (bowKey && BOWS[bowKey]) addBow(BOWS[bowKey]);
+  else if (bowKey && bowKey.indexOf(STORAGE_PREFIX) === 0) addBow(getUserBow(bowKey));
+
+  ['pse40', 'v3_60', 'phase4_70'].forEach(k => {
+    const cb = document.getElementById('cmpBow_' + k);
+    if (cb && cb.checked && BOWS[k]) addBow(BOWS[k]);
+  });
+  document.querySelectorAll('input.cmpBow-user[type="checkbox"]').forEach(cb => {
+    if (!cb.checked) return;
+    addBow(getUserBow(cb.dataset.storageKey));
+  });
+
+  const dpr  = Math.min(window.devicePixelRatio || 1, 2);
+  const cssW = canvas.parentElement.clientWidth - 2;
+  const cssH = 240;
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = cssW, H = cssH;
+  const pad = { top: 16, right: 14, bottom: 36, left: 48 };
+  const gw = W - pad.left - pad.right;
+  const gh = H - pad.top - pad.bottom;
+
+  const xMin = 300, xMax = 1200;
+
+  let ownFit = null;
+  if (pts.length >= 3) {
+    const n = pts.length;
+    let sumX = 0, sumY = 0, sumXX = 0, sumXY = 0;
+    pts.forEach(p => {
+      const x = Math.log(p.w), y = Math.log(p.s);
+      sumX += x; sumY += y; sumXX += x * x; sumXY += x * y;
+    });
+    const b = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const logA = (sumY - b * sumX) / n;
+    const a = Math.exp(logA);
+    const meanY = sumY / n;
+    let ssTot = 0, ssRes = 0;
+    pts.forEach(p => {
+      const y = Math.log(p.s);
+      const yPred = logA + b * Math.log(p.w);
+      ssTot += (y - meanY) ** 2;
+      ssRes += (y - yPred) ** 2;
+    });
+    const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
+    ownFit = { a, b, r2 };
+  }
+
+  const r2Hint = document.getElementById('fitR2Hint');
+  if (r2Hint) r2Hint.style.display = ownFit ? '' : 'none';
+
+  let yCandidates = [];
+  pts.forEach(p => yCandidates.push(p.s));
+  activeBows.forEach(bow => {
+    yCandidates.push(bow.a * Math.pow(xMin, bow.b));
+    yCandidates.push(bow.a * Math.pow(xMax, bow.b));
+  });
+  if (ownFit) {
+    yCandidates.push(ownFit.a * Math.pow(xMin, ownFit.b));
+    yCandidates.push(ownFit.a * Math.pow(xMax, ownFit.b));
+  }
+  let yMin, yMax;
+  if (yCandidates.length === 0) { yMin = 150; yMax = 300; }
+  else {
+    yMin = Math.floor((Math.min(...yCandidates) - 20) / 20) * 20;
+    yMax = Math.ceil((Math.max(...yCandidates) + 20) / 20) * 20;
+    if (yMin < 0) yMin = 0;
+    if (yMax - yMin < 80) yMax = yMin + 80;
+  }
+
+  const toX = w => pad.left + (w - xMin) / (xMax - xMin) * gw;
+  const toY = s => pad.top + (1 - (s - yMin) / (yMax - yMin)) * gh;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = cssVar('--grid-line');
+  ctx.lineWidth = 1;
+  ctx.fillStyle = cssVar('--muted');
+  ctx.font = '11px "JetBrains Mono", monospace';
+
+  for (let i = 0; i <= 5; i++) {
+    const v = yMin + (yMax - yMin) * i / 5;
+    const y = toY(v);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(v.toFixed(0), pad.left - 6, y);
+  }
+  for (let v = xMin; v <= xMax; v += 100) {
+    const x = toX(v);
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke();
+    if (v % 200 === 0 || v === xMin || v === xMax) {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(v.toFixed(0), x, H - pad.bottom + 6);
+    }
+  }
+
+  // Axis labels
+  ctx.fillStyle = cssVar('--text');
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText('mₚ [grain]', pad.left + gw / 2, H - 4);
+  ctx.save();
+  ctx.translate(12, pad.top + gh / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('v₀ [fps]', 0, 0);
+  ctx.restore();
+
+  // Comparison curves
+  const cmpColor = cssVar('--text');
+  activeBows.forEach(bow => {
+    ctx.strokeStyle = cmpColor;
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    const stepW = (xMax - xMin) / 200;
+    for (let w = xMin; w <= xMax; w += stepW) {
+      const v = bow.a * Math.pow(w, bow.b);
+      const x = toX(w), y = toY(v);
+      if (w === xMin) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    const vEnd = bow.a * Math.pow(xMax, bow.b);
+    const labelY = toY(vEnd);
+    ctx.fillStyle = cmpColor;
+    ctx.globalAlpha = 0.75;
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(bow.name, W - pad.right - 4, labelY - 2);
+    ctx.globalAlpha = 1;
+  });
+
+  // Readout lines for current arrow weight
+  const mpCurrent = parseLocale(document.getElementById('arrowWeightManual')?.value);
+  const showReadout = activeBows.length > 0 && mpCurrent > 0 && mpCurrent >= xMin && mpCurrent <= xMax;
+  if (showReadout) {
+    const xMP = toX(mpCurrent);
+    ctx.save();
+    ctx.strokeStyle = cssVar('--muted');
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(xMP, pad.top);
+    ctx.lineTo(xMP, H - pad.bottom);
+    ctx.stroke();
+    ctx.restore();
+    const mpLabel = 'mp = ' + mpCurrent.toFixed(0);
+    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+    const mpLabelW = ctx.measureText(mpLabel).width + 10;
+    const mpLabelH = 14;
+    const mpLabelX = Math.min(xMP - mpLabelW - 6, W - pad.right - mpLabelW);
+    ctx.fillStyle = cssVar('--canvas-bg');
+    ctx.globalAlpha = 0.75;
+    ctx.fillRect(Math.max(pad.left + 2, mpLabelX), pad.top + 2, mpLabelW, mpLabelH);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = cssVar('--text');
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(mpLabel, Math.max(pad.left + 2, mpLabelX) + 5, pad.top + 2 + mpLabelH / 2);
+
+    activeBows.forEach(bow => {
+      const v0 = bow.a * Math.pow(mpCurrent, bow.b);
+      if (v0 < yMin || v0 > yMax) return;
+      const yV = toY(v0);
+      ctx.save();
+      ctx.strokeStyle = cssVar('--text');
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, yV);
+      ctx.lineTo(W - pad.right, yV);
+      ctx.stroke();
+      ctx.restore();
+      const txt = v0.toFixed(0) + ' fps';
+      ctx.font = 'bold 11px "JetBrains Mono", monospace';
+      const wTxt = ctx.measureText(txt).width + 10;
+      const hTxt = 14;
+      const xTxt = W - pad.right - wTxt - 2;
+      ctx.fillStyle = cssVar('--canvas-bg');
+      ctx.globalAlpha = 0.75;
+      ctx.fillRect(xTxt, yV - hTxt / 2, wTxt, hTxt);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = cssVar('--text');
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(txt, xTxt + 5, yV);
+    });
+  }
+
+  if (pts.length === 0) {
+    if (bowKey === 'custom') {
+      ctx.fillStyle = cssVar('--muted');
+      ctx.font = 'italic 11px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(t('fit_plot_empty'), pad.left + gw / 2, pad.top + gh / 2);
+    }
+    return;
+  }
+
+  if (ownFit) {
+    const a = ownFit.a, b = ownFit.b, r2 = ownFit.r2;
+    if (bowKey === 'custom') {
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      const stepW = (xMax - xMin) / 200;
+      for (let w = xMin; w <= xMax; w += stepW) {
+        const v = a * Math.pow(w, b);
+        const x = toX(w), y = toY(v);
+        if (w === xMin) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    const vStart = a * Math.pow(xMin, b);
+    const xR2 = toX(xMin) + 8;
+    const yR2 = toY(vStart) + 4;
+    ctx.fillStyle = (bowKey === 'custom') ? '#ef4444' : cssVar('--text');
+    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('R² = ' + r2.toFixed(4), xR2, yR2);
+  } else if (bowKey === 'custom') {
+    ctx.fillStyle = cssVar('--muted');
+    ctx.font = 'italic 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(t('fit_plot_need_more'), W - pad.right - 4, pad.top + 4);
+  }
+
+  // Own measurement points
+  pts.forEach(p => {
+    const x = toX(p.w), y = toY(p.s);
+    ctx.fillStyle = '#ef4444';
+    ctx.strokeStyle = cssVar('--canvas-bg');
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  // Readout for own fit
+  if (showReadout && ownFit && bowKey === 'custom') {
+    const v0own = ownFit.a * Math.pow(mpCurrent, ownFit.b);
+    if (v0own >= yMin && v0own <= yMax) {
+      const yV = toY(v0own);
+      ctx.save();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, yV);
+      ctx.lineTo(W - pad.right, yV);
+      ctx.stroke();
+      ctx.restore();
+      const txt = v0own.toFixed(0) + ' fps';
+      ctx.font = 'bold 11px "JetBrains Mono", monospace';
+      ctx.setLineDash([]);
+      const wTxt = ctx.measureText(txt).width + 10;
+      const hTxt = 14;
+      const xTxt = W - pad.right - wTxt - 2;
+      let yPill = yV;
+      activeBows.forEach(bow => {
+        const yOther = toY(bow.a * Math.pow(mpCurrent, bow.b));
+        if (Math.abs(yOther - yPill) < hTxt + 2) yPill += hTxt + 2;
+      });
+      ctx.fillStyle = '#ef4444';
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(xTxt, yPill - hTxt / 2, wTxt, hTxt);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(txt, xTxt + 5, yPill);
+    }
+  }
+
+  renderUserBowMeasurements(bowKey);
+}
+
+// ══════════════════════════════════════════════
+//  MAIN RENDER
+// ══════════════════════════════════════════════
+function renderAll() {
+  renderResults();
+  renderTimeline();
+  renderCustomFitPlot();
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  applyTranslations();
+  renderUserBowList();
+  renderUserBowCmpList();
+  renderAll();
+});
+
+window.addEventListener('resize', () => {
+  renderTimeline();
+  renderCustomFitPlot();
+});
+</script>
+</body>
+</html>
